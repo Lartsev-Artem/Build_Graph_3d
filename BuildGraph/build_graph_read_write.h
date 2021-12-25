@@ -21,8 +21,6 @@
 #include <vtk-9.0\vtkGenericDataObjectWriter.h>
 #include<vtk-9.0\vtkPoints.h>
 
-
-
 int BuildSetForClaster(const std::string name_file_vtk, const std::string name_file_pairs,
 	const std::string name_file_boundary, const std::string name_file_normals, const std::string name_file_boundary_inner,
 	const std::string name_file_face_and_id);
@@ -40,7 +38,6 @@ int WriteInnerCellOfSphere(const std::string name_file_inner_sphere, const vtkSm
 
 int WriteInnerCellAndIdFaces(const std::string name_file_boundary_inner, const std::string name_file_face_and_id,
 	const vtkSmartPointer<vtkUnstructuredGrid>& unstructured_grid);
-
 
 #endif
 
@@ -67,6 +64,41 @@ int ReadInnerCellOfSphereAndId(const std::string name_file_face_and_id, std::map
 int ReadSphereDirectionDecartToSpherical(const std::string name_file_sphere_direction, std::vector<Type>& directions_all);
 
 int ReadSphereDirectionDecart(const std::string name_file_sphere_direction, std::vector<Vector3>& directions_all);
+
+int WriteFileGraph(const int i, const std::string& name_file_graph, const std::vector<IntId>& graph);
+
+#ifdef USE_VTK
+int WriteFileBoundary(const std::string name_file_out, const std::string name_file_graph, const std::string name_file_grid);
 #endif
+
+#endif
+
+#ifdef USE_VTK
+#include<vtk-9.0/vtkUnstructuredGrid.h>
+#include <vtk-9.0\vtkCellData.h>
+#include <vtk-9.0\vtkGenericDataObjectReader.h>
+#include <vtk-9.0\vtkGenericDataObjectWriter.h>
+template<typename Str>
+int ReadFileVtk(const Str name_file_vtk, vtkSmartPointer<vtkUnstructuredGrid>& unstructured_grid) {
+	vtkSmartPointer<vtkGenericDataObjectReader> reader_vtk =
+		vtkSmartPointer<vtkGenericDataObjectReader>::New();
+	reader_vtk->ReadAllScalarsOn();
+	reader_vtk->SetFileName(name_file_vtk);
+	reader_vtk->Update();
+
+	if (reader_vtk->IsFileUnstructuredGrid()) {
+		unstructured_grid = reader_vtk->GetUnstructuredGridOutput();
+		unstructured_grid->Modified();
+	}
+	else {
+		std::cout << "Error read file\n";
+		std::cout << "file_vtk is not UnstructuredGrid\n";
+		return 1;
+	}
+
+	std::cout << "Grid has Cell: " << unstructured_grid->GetNumberOfCells() << '\n';
+	return 0;
+}
+#endif //USE_VTK
 
 #endif

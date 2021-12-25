@@ -631,4 +631,70 @@ int ReadSphereDirectionDecart(const std::string name_file_sphere_direction, std:
 	ifile.close();
 	return 0;
 }
+
+int WriteFileGraph(const int i, const std::string& name_file_graph, const std::vector<IntId>& graph) {
+	std::ofstream ofile;
+	ofile.open(name_file_graph + std::to_string(i) + ".txt");
+	if (!ofile.is_open()) {
+		std::cout << "Error open file\n";
+		std::cout << "file_graph is not opened for writing\n";
+		return 1;
+	}
+
+	for (auto el : graph)
+		ofile << el << '\n';
+
+	ofile << std::fixed;
+	ofile.close();
+	return 0;
+}
+
+#ifdef USE_VTK
+int WriteFileBoundary(const std::string name_file_out, const std::string name_file_graph, const std::string name_file_grid) {
+	vtkSmartPointer<vtkUnstructuredGrid> unstructured_grid =
+		vtkSmartPointer<vtkUnstructuredGrid>::New();
+
+	if (ReadFileVtk(name_file_grid.c_str(), unstructured_grid))  return 1;
+
+	int n = unstructured_grid->GetNumberOfCells();
+
+	vtkSmartPointer<vtkIntArray> bound_array =
+		vtkSmartPointer<vtkIntArray>::New();
+
+	bound_array->SetNumberOfTuples(n);
+
+	std::ifstream ifile;
+	ifile.open(name_file_graph);
+	if (!ifile.is_open()) {
+		std::cout << "Error open file\n";
+		std::cout << "file_graph is not opened for reading\n";
+		return 1;
+	}
+
+	for (int i = 0; i < n; i++)
+		bound_array->SetTuple1(i, 0);
+
+	int i = 0, el;
+	ifile >> el;
+	bound_array->SetTuple1(el, -100);
+	while (ifile >> el)
+		bound_array->SetTuple1(el, i++);
+	ifile.close();
+
+	vtkSmartPointer<vtkUnstructuredGrid> ungrid = vtkSmartPointer<vtkUnstructuredGrid>::New();
+
+	ungrid = unstructured_grid;
+	ungrid->GetCellData()->SetActiveScalars("energy");
+	ungrid->GetCellData()->SetScalars(bound_array);
+
+
+	vtkSmartPointer<vtkGenericDataObjectWriter> writer =
+		vtkSmartPointer<vtkGenericDataObjectWriter>::New();
+	writer->SetFileName(name_file_out.c_str());
+	writer->SetInputData(ungrid);
+	writer->Write();
+	return 0;
+}
+#endif
+
 #endif

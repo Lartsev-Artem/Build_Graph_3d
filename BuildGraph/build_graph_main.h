@@ -27,34 +27,6 @@
 #endif //USE_MPI
 
 
-#ifdef USE_VTK
-#include<vtk-9.0/vtkUnstructuredGrid.h>
-#include <vtk-9.0\vtkCellData.h>
-#include <vtk-9.0\vtkGenericDataObjectReader.h>
-#include <vtk-9.0\vtkGenericDataObjectWriter.h>
-template<typename Str>
-int ReadFileVtk(const Str name_file_vtk, vtkSmartPointer<vtkUnstructuredGrid>& unstructured_grid) {
-	vtkSmartPointer<vtkGenericDataObjectReader> reader_vtk =
-		vtkSmartPointer<vtkGenericDataObjectReader>::New();
-	reader_vtk->ReadAllScalarsOn();
-	reader_vtk->SetFileName(name_file_vtk);
-	reader_vtk->Update();
-
-	if (reader_vtk->IsFileUnstructuredGrid()) {
-		unstructured_grid = reader_vtk->GetUnstructuredGridOutput();
-		unstructured_grid->Modified();
-	}
-	else {
-		std::cout << "Error read file\n";
-		std::cout << "file_vtk is not UnstructuredGrid\n";
-		return 1;
-	}
-
-	std::cout << "Grid has Cell: " << unstructured_grid->GetNumberOfCells() << '\n';
-	return 0;
-}
-#endif //USE_VTK
-
 template<typename Str>
 int ReadStartSettings(Str name_file_settings, Str& name_file_vtk, Str& name_file_sphere_direction, Str& name_file_graph,
 	Str& name_file_normals, Str& name_file_pairs, Str& name_file_inner_boundary, Str& name_file_init_boundary, Str& name_file_inner_sphere) {
