@@ -1,0 +1,7 @@
+/.vs
+/Debug
+/BuildGraph/Debug
+/BuildGraph/Release
+/BuildGraph/BuildGraph.vcxproj
+/BuildGraph/BuildGraph.vcxproj.filters
+/BuildGraph/BuildGraph.vcxproj.user
