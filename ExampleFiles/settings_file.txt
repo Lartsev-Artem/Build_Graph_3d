@@ -1,0 +1,13 @@
+D:\MySphere.vtk
+D:\SphereDir660.txt
+D:\graph
+D:\normals.txt
+D:\pairs.txt
+D:\Inner_bound_Id.txt
+D:\InitBound.txt
+D:\InnerFaceId.txt
+
+
+=====================================
+MySphere
+\Sphere565.vtk
