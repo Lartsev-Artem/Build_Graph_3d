@@ -222,7 +222,7 @@ int main(int argc, char** argv)
 			InitFacesState(all_pairs_id, faces_state, inner_faces);
 			direction = directions[cur_direction];  // 13 -- error direction for test.vtk grid
 
-			direction = Vector3(1, 0, 0);
+			//direction = Vector3(1, 0, 0);
 
 			FractionInnerBoundary(direction, normals, inner_faces, set_inner_boundary_cells, inner_part, outter_part);
 
