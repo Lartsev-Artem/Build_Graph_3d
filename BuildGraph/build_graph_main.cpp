@@ -1,5 +1,89 @@
 #include "build_graph_main.h"
 
+#ifdef USE_VTK
+int WriteFile(const std::string name_file_out, const std::string name_file_graph, const std::string name_file_grid) {
+	vtkSmartPointer<vtkUnstructuredGrid> unstructured_grid =
+		vtkSmartPointer<vtkUnstructuredGrid>::New();
+
+	if (ReadFileVtk(name_file_grid.c_str(), unstructured_grid))  return 1;
+
+	int n = unstructured_grid->GetNumberOfCells();
+
+	vtkSmartPointer<vtkIntArray> bound_array =
+		vtkSmartPointer<vtkIntArray>::New();
+
+	bound_array->SetNumberOfTuples(n);
+
+	std::ifstream ifile;
+	ifile.open(name_file_graph);
+	if (!ifile.is_open()) {
+		std::cout << "Error open file\n";
+		std::cout << "file_graph is not opened for reading\n";
+		return 1;
+	}
+
+	for (int i = 0; i < n; i++)
+		bound_array->SetTuple1(i, 0);
+
+	int i = 0, el;
+	ifile >> el;
+	bound_array->SetTuple1(el, -100);
+	while (ifile >> el)
+		bound_array->SetTuple1(el/4, i++);
+	ifile.close();
+
+	vtkSmartPointer<vtkUnstructuredGrid> ungrid = vtkSmartPointer<vtkUnstructuredGrid>::New();
+
+	ungrid = unstructured_grid;
+	ungrid->GetCellData()->SetActiveScalars("energy");
+	ungrid->GetCellData()->SetScalars(bound_array);
+
+
+	vtkSmartPointer<vtkGenericDataObjectWriter> writer =
+		vtkSmartPointer<vtkGenericDataObjectWriter>::New();
+	writer->SetFileName(name_file_out.c_str());
+	writer->SetInputData(ungrid);
+	writer->Write();
+	return 0;
+}
+int WriteFile(const std::string name_file_out, const std::set<int> bound, const std::string name_file_grid) {
+	vtkSmartPointer<vtkUnstructuredGrid> unstructured_grid =
+		vtkSmartPointer<vtkUnstructuredGrid>::New();
+
+	if (ReadFileVtk(name_file_grid.c_str(), unstructured_grid))  return 1;
+
+	int n = unstructured_grid->GetNumberOfCells();
+
+	vtkSmartPointer<vtkIntArray> bound_array =
+		vtkSmartPointer<vtkIntArray>::New();
+
+	bound_array->SetNumberOfTuples(n);
+
+
+	for (int i = 0; i < n; i++)
+		bound_array->SetTuple1(i, 0);
+
+	for (auto el: bound)
+	{
+		bound_array->SetTuple1(el, 1);
+	}
+
+	vtkSmartPointer<vtkUnstructuredGrid> ungrid = vtkSmartPointer<vtkUnstructuredGrid>::New();
+
+	ungrid = unstructured_grid;
+	ungrid->GetCellData()->SetActiveScalars("energy");
+	ungrid->GetCellData()->SetScalars(bound_array);
+
+
+	vtkSmartPointer<vtkGenericDataObjectWriter> writer =
+		vtkSmartPointer<vtkGenericDataObjectWriter>::New();
+	writer->SetFileName(name_file_out.c_str());
+	writer->SetInputData(ungrid);
+	writer->Write();
+	return 0;
+}
+#endif // USE_VTK
+
 int main(int argc, char** argv)
 {
 	omp_set_num_threads(4);
@@ -33,6 +117,7 @@ int main(int argc, char** argv)
 		name_file_pairs, name_file_inner_boundary,
 		name_file_init_boundary, name_file_face_and_id)) MPI_RETURN(1);
 
+
 #ifdef OnlyWriteFiles
 #ifdef  USE_MPI
 	if (myid == 0)
@@ -46,7 +131,9 @@ int main(int argc, char** argv)
 		t += omp_get_wtime();
 		std::cout << "Time for build start set: " << t << "\n";
 
+#ifndef OnlyReadFiles
 		MPI_RETURN(0);
+#endif
 	}
 #endif 
 
@@ -133,7 +220,9 @@ int main(int argc, char** argv)
 		{
 			flag = true;
 			InitFacesState(all_pairs_id, faces_state, inner_faces);
-			direction = directions[cur_direction];
+			direction = directions[cur_direction];  // 13 -- error direction for test.vtk grid
+
+			direction = Vector3(1, 0, 0);
 
 			FractionInnerBoundary(direction, normals, inner_faces, set_inner_boundary_cells, inner_part, outter_part);
 
@@ -199,6 +288,7 @@ int main(int argc, char** argv)
 					count_graph++;
 				}
 
+
 #endif // USE_OMP
 				
 				//	if (++count % 5000 == 0 && myid == 0)
@@ -206,6 +296,7 @@ int main(int argc, char** argv)
 			
 			}//while
 			
+			if (count_graph < graph.size()) printf("Error size graph\n");
 			if (WriteFileGraph(cur_direction, name_file_graph, graph))
 				printf("Error writing graph file numbeb %d\n", cur_direction);
 
