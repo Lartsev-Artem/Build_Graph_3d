@@ -222,7 +222,7 @@ int main(int argc, char** argv)
 			InitFacesState(all_pairs_id, faces_state, inner_faces);
 			direction = directions[cur_direction];  // 13 -- error direction for test.vtk grid
 
-			//direction = Vector3(1, 0, 0);
+			//direction = directions[9];// Vector3(1, 0, 0);
 
 			FractionInnerBoundary(direction, normals, inner_faces, set_inner_boundary_cells, inner_part, outter_part);
 
@@ -235,6 +235,8 @@ int main(int argc, char** argv)
 			//-------------------------------------
 
 			int count_graph = 0; // число €чеек вошедших в граф 
+			graph.assign(num_cells, -1); // дл€ отлавливани€ ошибочных направлений
+			bool try_restart = true;
 
 #ifdef USE_OMP
 			while (next_step_el_OMP.size() && flag) 
@@ -293,9 +295,25 @@ int main(int argc, char** argv)
 				
 				//	if (++count % 5000 == 0 && myid == 0)
 				//	printf("Direction %d, count= %d\n", cur_direction, count);
+
+				
+				if (count_graph < graph.size() && next_step_el.size() == 0 && try_restart) {
+					try_restart = !try_restart;
+
+					flag = true;
+
+					printf("Error. try_restart %d\n", cur_direction);
+					
+					cur_el.clear();
+					for (size_t i = 0; i < num_cells; i++)
+					{
+						cur_el.push_back(i);
+					}
+					NewStep(all_pairs_id, count_in_face, count_knew_face, cur_el, next_step_el);
+				}
 			
 			}//while
-			
+			try_restart = !try_restart;
 			if (count_graph < graph.size()) printf("Error size graph\n");
 			if (WriteFileGraph(cur_direction, name_file_graph, graph))
 				printf("Error writing graph file numbeb %d\n", cur_direction);
