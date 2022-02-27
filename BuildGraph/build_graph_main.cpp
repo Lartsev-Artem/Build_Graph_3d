@@ -1,5 +1,10 @@
 #include "build_graph_main.h"
 
+std::vector<int> id_try_surface;
+std::vector<Type> dist_try_surface;
+std::vector<Vector3> x_try_surface;
+TrySolve buf_try;
+
 #ifdef USE_VTK
 int WriteFile(const std::string name_file_out, const std::string name_file_graph, const std::string name_file_grid) {
 	vtkSmartPointer<vtkUnstructuredGrid> unstructured_grid =
@@ -99,7 +104,7 @@ int main(int argc, char** argv)
 
 	std::string name_file_settings;
 	if (argc <= 1)
-		name_file_settings = "D:\\Desktop\\FilesCourse\\TestClaster\\settings_file.txt";
+		name_file_settings = "D:\\Desktop\\FilesCourse\\graphSet\\settings_file.txt";
 	else
 		name_file_settings = argv[1];
 
@@ -117,7 +122,7 @@ int main(int argc, char** argv)
 		name_file_pairs, name_file_inner_boundary,
 		name_file_init_boundary, name_file_face_and_id)) MPI_RETURN(1);
 
-
+	// Здесь должно быть ifndef
 #ifdef OnlyWriteFiles
 #ifdef  USE_MPI
 	if (myid == 0)
@@ -218,13 +223,22 @@ int main(int argc, char** argv)
 #endif //ONLY_ONE_DIRECTION
 
 		{
+			
 			flag = true;
 			InitFacesState(all_pairs_id, faces_state, inner_faces);
 			direction = directions[cur_direction];  // 13 -- error direction for test.vtk grid
 
-			//direction = directions[9];// Vector3(1, 0, 0);
+			//direction = directions[3];// Vector3(1, 0, 0);
 
 			FractionInnerBoundary(direction, normals, inner_faces, set_inner_boundary_cells, inner_part, outter_part);
+
+			id_try_surface.clear();
+			dist_try_surface.clear();
+			x_try_surface.clear();
+
+			x_try_surface.reserve(outter_part.size() * 3);
+			id_try_surface.reserve(outter_part.size() * 3);
+			dist_try_surface.reserve(outter_part.size() * 3);
 
 			//-------------------------------------
 #ifdef USE_OMP
@@ -301,8 +315,18 @@ int main(int argc, char** argv)
 					try_restart = !try_restart;
 
 					flag = true;
+					//printf("Size outter boundary %d\n", outter_part.size());
+#ifdef GRID_WITH_INNER_BOUNDARY
+					if (outter_part.size() != 0) {
+						cur_el.clear();
+						next_step_el.clear();
+						next_step_el.insert(outter_part.begin(), outter_part.end());
+						printf("Error. try_short_restart %d\n", cur_direction);
+						continue;
+					}
+#endif //GRID_WITH_INNER_BOUNDARY
 
-					printf("Error. try_restart %d\n", cur_direction);
+					printf("\n\n        Error. try_restart %d\n\n            ", cur_direction);
 					
 					cur_el.clear();
 					for (size_t i = 0; i < num_cells; i++)
@@ -313,8 +337,9 @@ int main(int argc, char** argv)
 				}
 			
 			}//while
+
 			try_restart = !try_restart;
-			if (count_graph < graph.size()) printf("Error size graph\n");
+			if (count_graph < graph.size()) printf("-------------------------Error size graph-------------------------------\n");
 			if (WriteFileGraph(cur_direction, name_file_graph, graph))
 				printf("Error writing graph file numbeb %d\n", cur_direction);
 

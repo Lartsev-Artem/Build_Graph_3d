@@ -6,6 +6,10 @@
 
 typedef Eigen::Vector3d Vector3;
 
+extern std::vector<int> id_try_surface;		 // id граней, определяющих внутренюю границу
+extern std::vector<double> dist_try_surface; // расстояния между точками (через полость внутри) 
+extern std::vector<Vector3> x_try_surface;   // x точка выхода
+
 struct Face {
 	Vector3 A;
 	Vector3 B;
@@ -33,5 +37,21 @@ struct FaceCell {
 		face = face_init;
 	}
 };
+
+struct TrySolve {
+	int id_1;
+	int id_2;
+	int id_3;
+
+	double s_1;
+	double s_2;
+	double s_3;
+
+	Vector3 x1;
+	Vector3 x2;
+	Vector3 x3;
+};
+
+extern TrySolve buf_try;
 
 #endif

@@ -151,50 +151,67 @@ int FindIdCellInBoundary(const Vector3& direction, const std::set<IntId>& inner_
 	Vector3 vertex3 = P3 + (P33 - P3) / 3;
 
 	// ищем пересечения vectrex->direction c гранями внутренней границы
-	Vector3 intersect_point;
+	//Vector3 intersect_point1;  //buf_try.x1
+	//Vector3 intersect_point2;  //buf_try.x2
+	//Vector3 intersect_point3;  //buf_try.x3
+
 	FaceCell plane_face;
 	for (auto& in_id : inner_bound) {
 		plane_face = inner_cells.find(in_id)->second;
-		IntersectionWithPlane(plane_face.face, vertex1, direction, intersect_point);
-		if (InTriangle(plane_face.face_id, plane_face.face, normals[in_id], intersect_point))
+		IntersectionWithPlane(plane_face.face, vertex1, direction, buf_try.x1);
+		if (InTriangle(plane_face.face_id, plane_face.face, normals[in_id], buf_try.x1))
 			//if (in_id != cur_cell && ((intersect_point - vertex1).dot(direction) < 0)) 
 		{
 			/*	std::bitset<4>id;
 				FindInAndOutFaces(direction, in_id, normals, id);
 				if (id[plane_face.face_id % 4] == 0) break;*/
 
+			buf_try.id_1 = plane_face.face_id;
 			id[0] = in_id;
 			break;
 		}
 	}
 
+	if (id[0] == -1) return 1;
+
 	for (auto& in_id : inner_bound) {
 		plane_face = inner_cells.find(in_id)->second;
-		IntersectionWithPlane(plane_face.face, vertex2, direction, intersect_point);
-		if (InTriangle(plane_face.face_id, plane_face.face, normals[in_id], intersect_point))
+		IntersectionWithPlane(plane_face.face, vertex2, direction, buf_try.x2);
+		if (InTriangle(plane_face.face_id, plane_face.face, normals[in_id], buf_try.x2))
 			//if (in_id != cur_cell && ((intersect_point - vertex2).dot(direction) < 0)) 
 		{
 			/*	std::bitset<4>id;
 				FindInAndOutFaces(direction, in_id, normals, id);
 				if (id[plane_face.face_id % 4] == 0) break;*/
 			id[1] = in_id;
+			buf_try.id_2 = plane_face.face_id;
 			break;
 		}
 	}
 
+	if (id[1] == -1) return 1;
+
 	for (auto& in_id : inner_bound) {
 		plane_face = inner_cells.find(in_id)->second;
-		IntersectionWithPlane(plane_face.face, vertex3, direction, intersect_point);
-		if (InTriangle(plane_face.face_id, plane_face.face, normals[in_id], intersect_point))
+		IntersectionWithPlane(plane_face.face, vertex3, direction, buf_try.x3);
+		if (InTriangle(plane_face.face_id, plane_face.face, normals[in_id], buf_try.x3))
 			//if (in_id != cur_cell && ((intersect_point - vertex3).dot(direction) < 0)) 
 		{
 			/*	std::bitset<4>id;
 				FindInAndOutFaces(direction, in_id, normals, id);
 				if (id[plane_face.face_id % 4] == 0) break;*/
 			id[2] = in_id;
+			buf_try.id_3 = plane_face.face_id;
 			break;
 		}
 	}
+
+	if (id[2] == -1) return 1;
+
+	buf_try.s_1 = (vertex1 - buf_try.x1).norm();
+	buf_try.s_2 = (vertex2 - buf_try.x2).norm();
+	buf_try.s_3 = (vertex3 - buf_try.x3).norm();
+
 
 	return 0;
 }
@@ -506,6 +523,7 @@ int FindCurCellWithHole(const std::set<IntId>& next_step_el, const std::vector<I
 
 	cur_el.clear();
 
+
 	const int N = next_step_el.size();
 	for (auto cell : next_step_el)
 	{
@@ -513,13 +531,24 @@ int FindCurCellWithHole(const std::set<IntId>& next_step_el, const std::vector<I
 			if (count_in_face[cell] == count_knew_face[cell] + 1) {  // граница не определена
 				IntId try_id[3] = { -1,-1,-1 };
 
-				FindIdCellInBoundary(direction, inner_part, inner_cells, normals, cell, try_id);
-
-				if (try_id[0] == -1 || try_id[1] == -1 || try_id[2] == -1) continue;
+				
+				if (FindIdCellInBoundary(direction, inner_part, inner_cells, normals, cell, try_id)) continue;
 
 				if (count_in_face[try_id[0]] == count_knew_face[try_id[0]] &&
 					count_in_face[try_id[1]] == count_knew_face[try_id[1]] &&
 					count_in_face[try_id[2]] == count_knew_face[try_id[2]]) { // если грань на другом конце определена
+
+					id_try_surface.push_back(buf_try.id_1);
+					id_try_surface.push_back(buf_try.id_2);
+					id_try_surface.push_back(buf_try.id_3);
+
+					x_try_surface.push_back(buf_try.x1);
+					x_try_surface.push_back(buf_try.x2);
+					x_try_surface.push_back(buf_try.x3);
+
+					dist_try_surface.push_back(buf_try.s_1);
+					dist_try_surface.push_back(buf_try.s_2);
+					dist_try_surface.push_back(buf_try.s_3);
 
 					cur_el.push_back(cell);
 					outter_part.erase(cell);

@@ -13,6 +13,22 @@
 #include<string>
 #include<vector>
 
+#include <chrono>
+#include <cstdio>
+#include <inttypes.h>
+#include <memory>
+#include< stdio.h >
+
+typedef std::string Str_Type;
+using namespace std::chrono;
+
+
+#ifdef _MSC_VER
+#define fwrite_unlocked _fwrite_nolock
+#define fread_unlocked  _fread_nolock
+#endif
+
+
 #ifdef OnlyWriteFiles
 #include<vtk-9.0/vtkUnstructuredGrid.h>
 #include <vtk-9.0\vtkGenericDataObjectReader.h>

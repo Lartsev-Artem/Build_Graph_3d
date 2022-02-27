@@ -633,6 +633,47 @@ int ReadSphereDirectionDecart(const std::string name_file_sphere_direction, std:
 }
 
 int WriteFileGraph(const int i, const std::string& name_file_graph, const std::vector<IntId>& graph) {
+
+#ifdef FastWriteFile
+
+
+	std::unique_ptr<FILE, int(*)(FILE*)> file_graph(fopen((name_file_graph + std::to_string(i) + ".bin").c_str(), "wb"), fclose);
+	if (!file_graph) { printf("file_graph is not opened for writing\n"); return 1; }
+
+	const int n = graph.size();
+	fwrite_unlocked(graph.data(), sizeof(IntId), n, file_graph.get());
+
+	fclose(file_graph.get());
+
+	std::unique_ptr<FILE, int(*)(FILE*)> file_id(fopen((std::string(BASE_ADRESS) + "id_defining_faces" + std::to_string(i) + ".bin").c_str(), "wb"), fclose);
+	if (!file_id) { printf("file_id is not opened for writing\n"); return 1; }
+
+	int size = id_try_surface.size();
+	fwrite_unlocked(&size, sizeof(int), 1, file_id.get());
+	fwrite_unlocked(id_try_surface.data(), sizeof(IntId), size, file_id.get());
+
+	fclose(file_id.get());
+
+	std::unique_ptr<FILE, int(*)(FILE*)> file_dist(fopen((std::string(BASE_ADRESS) + "dist_defining_faces" + std::to_string(i) + ".bin").c_str(), "wb"), fclose);
+	if (!file_dist) { printf("file_dist is not opened for writing\n"); return 1; }
+
+	size = dist_try_surface.size();
+	fwrite_unlocked(&size, sizeof(int), 1, file_dist.get());
+	fwrite_unlocked(dist_try_surface.data(), sizeof(Type), size, file_dist.get());
+
+	fclose(file_dist.get());
+
+	std::unique_ptr<FILE, int(*)(FILE*)> file_x(fopen((std::string(BASE_ADRESS) + "x_defining_faces" + std::to_string(i) + ".bin").c_str(), "wb"), fclose);
+	if (!file_x) { printf("file_x is not opened for writing\n"); return 1; }
+
+	size = x_try_surface.size();
+	fwrite_unlocked(&size, sizeof(int), 1, file_x.get());
+	fwrite_unlocked(x_try_surface.data(), sizeof(Vector3), size, file_x.get());
+
+	fclose(file_x.get());
+
+#else
+
 	std::ofstream ofile;
 	ofile.open(name_file_graph + std::to_string(i) + ".txt");
 	if (!ofile.is_open()) {
@@ -646,6 +687,37 @@ int WriteFileGraph(const int i, const std::string& name_file_graph, const std::v
 
 	ofile << std::fixed;
 	ofile.close();
+
+	ofile.open(std::string(BASE_ADRESS) + "id_defining_faces" + std::to_string(i) + ".txt");
+	if (!ofile.is_open()) {
+		std::cout << "Error open file\n";
+		std::cout << "file id_defining_faces is not opened for writing\n";
+		return 1;
+	}
+
+	ofile << id_try_surface.size() << '\n';
+	for (int i = 0; i < id_try_surface.size(); i += 3)
+		ofile << id_try_surface[i] << ' ' << id_try_surface[i + 1] << ' ' << id_try_surface[i + 2] << ' ' << '\n';
+
+	ofile << std::fixed;
+	ofile.close();
+
+	ofile.open(std::string(BASE_ADRESS) + "dist_defining_faces" + std::to_string(i) + ".txt");
+	if (!ofile.is_open()) {
+		std::cout << "Error open file\n";
+		std::cout << "file dist_defining_faces is not opened for writing\n";
+		return 1;
+	}
+
+	ofile << dist_try_surface.size() << '\n';
+	for (int i = 0; i < dist_try_surface.size(); i += 3)
+		ofile << dist_try_surface[i] << ' ' << dist_try_surface[i + 1] << ' ' << dist_try_surface[i + 2] << ' ' << '\n';
+
+	ofile << std::fixed;
+	ofile.close();
+
+#endif // FastWriteFile
+
 	return 0;
 }
 
@@ -686,7 +758,6 @@ int WriteFileBoundary(const std::string name_file_out, const std::string name_fi
 	ungrid = unstructured_grid;
 	ungrid->GetCellData()->SetActiveScalars("energy");
 	ungrid->GetCellData()->SetScalars(bound_array);
-
 
 	vtkSmartPointer<vtkGenericDataObjectWriter> writer =
 		vtkSmartPointer<vtkGenericDataObjectWriter>::New();
