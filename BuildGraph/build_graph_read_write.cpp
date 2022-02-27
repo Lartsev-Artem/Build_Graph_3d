@@ -338,7 +338,7 @@ int WriteInnerCellAndIdFaces(const std::string name_file_boundary_inner, const s
 		points_face->GetPoint(1, B);
 		points_face->GetPoint(2, C);
 
-		ofile << el << ' ' << A[0] << ' ' << A[1] << ' ' << A[2] << ' '
+		ofile<<setprecision(16) << el << ' ' << A[0] << ' ' << A[1] << ' ' << A[2] << ' '
 			               << B[0] << ' ' << B[1] << ' ' << B[2] << ' '
 		                   << C[0] << ' ' << C[1] << ' ' << C[2] << '\n';
 	}
@@ -761,6 +761,7 @@ int WriteFileBoundary(const std::string name_file_out, const std::string name_fi
 
 	vtkSmartPointer<vtkGenericDataObjectWriter> writer =
 		vtkSmartPointer<vtkGenericDataObjectWriter>::New();
+	writer->SetFileTypeToBinary();
 	writer->SetFileName(name_file_out.c_str());
 	writer->SetInputData(ungrid);
 	writer->Write();

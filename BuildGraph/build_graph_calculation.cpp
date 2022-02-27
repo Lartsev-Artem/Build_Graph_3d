@@ -628,6 +628,7 @@ int NewStep(const std::vector<IntId>& all_pairs_id, const std::vector<IntId>& co
 				next_step_el.emplace(neighbour);  // ячейка была изменена, проверить ее готовность на следующем шаге
 				count_knew_face[neighbour]++;  // всегда ли эта грань будет входящей (проверка по нормалям??)
 			}
+			//else if(count_in_face[neighbour] == count_knew_face[neighbour]) count_knew_face[neighbour]++; //попытка настроить restart
 		}
 
 	}

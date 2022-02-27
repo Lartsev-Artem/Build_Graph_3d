@@ -26,10 +26,10 @@ typedef uint8_t State;
 
 #define BASE_ADRESS "D:\\Desktop\\FilesCourse\\IllumGrid\\"
 
-const Vector3 center_point(0, 0, 0);
-const Type R = 0.51; // радиус внутренней сферы (с запасом)
+//const Vector3 center_point(0, 0, 0);
+//const Type R = 0.51; // радиус внутренней сферы (с запасом)
 
-//const Vector3 center_point(1, 0, 0);
-//const Type R = 0.11;  // радиус внутренней сферы (с запасом)
+const Vector3 center_point(1, 0, 0);
+const Type R = 0.11;  // радиус внутренней сферы (с запасом)
 
 #endif

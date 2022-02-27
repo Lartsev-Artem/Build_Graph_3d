@@ -209,6 +209,7 @@ int main(int argc, char** argv)
 		std::set<IntId> next_step_el;
 #endif // USE_OMP
 
+		std::ofstream ofile("D:\\Desktop\\FilesCourse\\graphSet\\Logs.txt");
 
 		const int count_cirection = directions.size();
 
@@ -223,7 +224,6 @@ int main(int argc, char** argv)
 #endif //ONLY_ONE_DIRECTION
 
 		{
-			
 			flag = true;
 			InitFacesState(all_pairs_id, faces_state, inner_faces);
 			direction = directions[cur_direction];  // 13 -- error direction for test.vtk grid
@@ -282,7 +282,7 @@ int main(int argc, char** argv)
 #ifdef USE_MPI
 					std::cout << "Error proc: " << myid << '\n';
 #endif // USE_MPI
-					WriteFileGraph(cur_direction, name_file_graph, graph);
+					//WriteFileGraph(cur_direction, name_file_graph, graph);
 					std::cout << "Error num_direction: " << cur_direction << '\n';
 					std::cout << "Error.Complete " << count_graph << " cells\n";
 					flag = false; // break;
@@ -317,29 +317,49 @@ int main(int argc, char** argv)
 					flag = true;
 					//printf("Size outter boundary %d\n", outter_part.size());
 #ifdef GRID_WITH_INNER_BOUNDARY
-					if (outter_part.size() != 0) {
+					if (outter_part.size() != 0) 
+					{
 						cur_el.clear();
 						next_step_el.clear();
 						next_step_el.insert(outter_part.begin(), outter_part.end());
 						printf("Error. try_short_restart %d\n", cur_direction);
+						ofile << "Error. try_short_restart" << cur_direction << "\n";
+
+						//пытаться определять внутреннюю границу до последнего
+						static int cc = 0;
+						if (cc++ < 3)
+							try_restart = !try_restart;
+
 						continue;
 					}
 #endif //GRID_WITH_INNER_BOUNDARY
 
-					printf("\n\n        Error. try_restart %d\n\n            ", cur_direction);
+					printf("\n        Error. try_restart %d            \n", cur_direction);
+					ofile << "----------   Error. try_restart   ----------" << cur_direction << "\n";
 					
 					cur_el.clear();
+					next_step_el.clear();
+					
+					cout << outter_part.size() << '\n';
 					for (size_t i = 0; i < num_cells; i++)
 					{
-						cur_el.push_back(i);
+						if (count_in_face[i] > count_knew_face[i]) {
+							next_step_el.emplace(i);  // ячейка была изменена, проверить ее готовность на следующем шаге
+							
+						}
+
 					}
-					NewStep(all_pairs_id, count_in_face, count_knew_face, cur_el, next_step_el);
+
+					//NewStep(all_pairs_id, count_in_face, count_knew_face, cur_el, next_step_el);
 				}
 			
 			}//while
 
 			try_restart = !try_restart;
-			if (count_graph < graph.size()) printf("-------------------------Error size graph-------------------------------\n");
+			if (count_graph < graph.size()) {
+				printf("-------------------------Error size graph-------------------------------\n");
+				ofile << "----------  Error size graph   ----------(" << cur_direction <<") Size: "<<count_graph << "\n";
+			}
 			if (WriteFileGraph(cur_direction, name_file_graph, graph))
 				printf("Error writing graph file numbeb %d\n", cur_direction);
 
@@ -351,7 +371,11 @@ int main(int argc, char** argv)
 #endif // USE_MPI
 
 		}
+
+		ofile.close();
 	}
+
+	
 
 #ifdef USE_MPI
 	if (myid == 0) {
