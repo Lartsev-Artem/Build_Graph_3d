@@ -5,6 +5,10 @@ std::vector<Type> dist_try_surface;
 std::vector<Vector3> x_try_surface;
 TrySolve buf_try;
 
+int id_try_size;
+int dist_try_size;
+int x_try_size;
+
 #ifdef USE_VTK
 int WriteFile(const std::string name_file_out, const std::string name_file_graph, const std::string name_file_grid) {
 	vtkSmartPointer<vtkUnstructuredGrid> unstructured_grid =
@@ -91,6 +95,9 @@ int WriteFile(const std::string name_file_out, const std::set<int> bound, const 
 
 int main(int argc, char** argv)
 {
+	id_try_size = 0;
+	dist_try_size = 0;
+	x_try_size = 0;
 	omp_set_num_threads(4);
 
 #ifdef  USE_MPI
@@ -209,7 +216,20 @@ int main(int argc, char** argv)
 		std::set<IntId> next_step_el;
 #endif // USE_OMP
 
-		std::ofstream ofile("D:\\Desktop\\FilesCourse\\graphSet\\Logs.txt");
+		std::ofstream ofile(std::string(BASE_ADRESS) + "Logs.txt");
+
+		std::unique_ptr<FILE, int(*)(FILE*)> file_graph(fopen((std::string(BASE_ADRESS)+"graph" + ".bin").c_str(), "wb"), fclose);
+		if (!file_graph) { printf("file_graph is not opened for writing\n"); return 1; }
+
+		std::unique_ptr<FILE, int(*)(FILE*)> file_id(fopen((std::string(BASE_ADRESS) + "id_defining_faces" + ".bin").c_str(), "wb"), fclose);
+		if (!file_id) { printf("file_id is not opened for writing\n"); return 1; }
+
+		std::unique_ptr<FILE, int(*)(FILE*)> file_dist(fopen((std::string(BASE_ADRESS) + "dist_defining_faces" + ".bin").c_str(), "wb"), fclose);
+		if (!file_dist) { printf("file_dist is not opened for writing\n"); return 1; }
+
+
+		std::unique_ptr<FILE, int(*)(FILE*)> file_x(fopen((std::string(BASE_ADRESS) + "x_defining_faces" +  ".bin").c_str(), "wb"), fclose);
+		if (!file_x) { printf("file_x is not opened for writing\n"); return 1; }
 
 		const int count_cirection = directions.size();
 
@@ -360,7 +380,7 @@ int main(int argc, char** argv)
 				printf("-------------------------Error size graph-------------------------------\n");
 				ofile << "----------  Error size graph   ----------(" << cur_direction <<") Size: "<<count_graph << "\n";
 			}
-			if (WriteFileGraph(cur_direction, name_file_graph, graph))
+			if (WriteFileGraph(file_graph, file_id, file_dist, file_x, cur_direction, num_cells, graph))
 				printf("Error writing graph file numbeb %d\n", cur_direction);
 
 #ifdef USE_MPI
@@ -373,6 +393,17 @@ int main(int argc, char** argv)
 		}
 
 		ofile.close();
+		fclose(file_graph.get());
+		fclose(file_id.get());
+		fclose(file_dist.get());
+		fclose(file_x.get());
+
+		std::ofstream ofile2(std::string(BASE_ADRESS) + "Size.txt");
+		ofile2 << id_try_size << '\n'; // "id_try_size: " << id_try_size;
+		/*ofile2 << "\ndist_try_size: " << dist_try_size;
+		ofile2 << "\nx_try_size: " << x_try_size << '\n';*/
+		ofile2.close();
+
 	}
 
 	

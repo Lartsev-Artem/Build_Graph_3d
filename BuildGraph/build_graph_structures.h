@@ -10,6 +10,10 @@ extern std::vector<int> id_try_surface;		 // id граней, определяющих внутренюю г
 extern std::vector<double> dist_try_surface; // расстояния между точками (через полость внутри) 
 extern std::vector<Vector3> x_try_surface;   // x точка выхода
 
+extern int id_try_size;
+extern int dist_try_size;
+extern int x_try_size;
+
 struct Face {
 	Vector3 A;
 	Vector3 B;

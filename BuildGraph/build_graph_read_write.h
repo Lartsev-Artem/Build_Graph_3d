@@ -83,6 +83,9 @@ int ReadSphereDirectionDecart(const std::string name_file_sphere_direction, std:
 
 int WriteFileGraph(const int i, const std::string& name_file_graph, const std::vector<IntId>& graph);
 
+int WriteFileGraph(std::unique_ptr<FILE, int(*)(FILE*)>& file_graph, std::unique_ptr<FILE, int(*)(FILE*)>& file_id,
+	std::unique_ptr<FILE, int(*)(FILE*)>& file_dist, std::unique_ptr<FILE, int(*)(FILE*)>& file_x,
+	const int i, const int n, const std::vector<IntId>& graph);
 #ifdef USE_VTK
 int WriteFileBoundary(const std::string name_file_out, const std::string name_file_graph, const std::string name_file_grid);
 #endif
