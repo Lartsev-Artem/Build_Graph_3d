@@ -117,7 +117,7 @@ int WriteNormalFile(const std::string name_file_normals, vtkSmartPointer<vtkUnst
 		for (size_t j = 0; j < 4; j++)
 		{
 			NormalAndSquareFace(i, j, unstructured_grid, normal);
-			ofile << normal[0] << ' ' << normal[1] << ' ' << normal[2] << '\n';
+			ofile << setprecision(16) << normal[0] << ' ' << normal[1] << ' ' << normal[2] << '\n';
 		}
 
 	}
@@ -302,7 +302,7 @@ int WriteInnerCellOfSphere(const std::string name_file_inner_sphere, const vtkSm
 		points_face->GetPoint(0, B);
 		points_face->GetPoint(0, C);
 
-		ofile << A[0] << ' ' << A[1] << ' ' << A[2]
+		ofile << setprecision(16) << A[0] << ' ' << A[1] << ' ' << A[2]
 		      << B[0] << ' ' << B[1] << ' ' << B[2]
 		      << C[0] << ' ' << C[1] << ' ' << C[2] << '\n';
 	}
