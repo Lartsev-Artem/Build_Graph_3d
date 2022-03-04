@@ -1,5 +1,7 @@
 #include "build_graph_main.h"
 
+std::string BASE_ADRESS;
+
 std::vector<int> id_try_surface;
 std::vector<Type> dist_try_surface;
 std::vector<Vector3> x_try_surface;
@@ -125,7 +127,7 @@ int main(int argc, char** argv)
 	std::string name_file_init_boundary;
 	std::string name_file_face_and_id;
 
-	if (ReadStartSettings(name_file_settings, name_file_vtk, name_file_sphere_direction, name_file_graph, name_file_normals,
+	if (ReadStartSettings(name_file_settings, name_file_vtk, name_file_sphere_direction, BASE_ADRESS, name_file_normals,
 		name_file_pairs, name_file_inner_boundary,
 		name_file_init_boundary, name_file_face_and_id)) MPI_RETURN(1);
 
