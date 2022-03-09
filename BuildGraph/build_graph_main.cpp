@@ -113,7 +113,7 @@ int main(int argc, char** argv)
 
 	std::string name_file_settings;
 	if (argc <= 1)
-		name_file_settings = "D:\\Desktop\\FilesCourse\\graphSet\\settings_file.txt";
+		name_file_settings = "D:\\Desktop\\FilesCourse\\settings_file_build.txt";
 	else
 		name_file_settings = argv[1];
 
@@ -232,6 +232,10 @@ int main(int argc, char** argv)
 
 		std::unique_ptr<FILE, int(*)(FILE*)> file_x(fopen((std::string(BASE_ADRESS) + "x_defining_faces" +  ".bin").c_str(), "wb"), fclose);
 		if (!file_x) { printf("file_x is not opened for writing\n"); return 1; }
+
+		std::unique_ptr<FILE, int(*)(FILE*)> file_shift_try(fopen((std::string(BASE_ADRESS) + "ShiftTry" + ".bin").c_str(), "wb"), fclose);
+		if (!file_x) { printf("file_x is not opened for writing\n"); return 1; }
+		
 
 		const int count_cirection = directions.size();
 
@@ -382,8 +386,13 @@ int main(int argc, char** argv)
 				printf("-------------------------Error size graph-------------------------------\n");
 				ofile << "----------  Error size graph   ----------(" << cur_direction <<") Size: "<<count_graph << "\n";
 			}
+
+			fwrite_unlocked(&id_try_size, sizeof(int), 1, file_shift_try.get());
+
 			if (WriteFileGraph(file_graph, file_id, file_dist, file_x, cur_direction, num_cells, graph))
 				printf("Error writing graph file numbeb %d\n", cur_direction);
+			
+			
 
 #ifdef USE_MPI
 			if (myid == 0)
@@ -399,6 +408,8 @@ int main(int argc, char** argv)
 		fclose(file_id.get());
 		fclose(file_dist.get());
 		fclose(file_x.get());
+		fclose(file_shift_try.get());
+		
 
 		std::ofstream ofile2(std::string(BASE_ADRESS) + "Size.txt");
 		ofile2 << id_try_size << '\n'; // "id_try_size: " << id_try_size;
