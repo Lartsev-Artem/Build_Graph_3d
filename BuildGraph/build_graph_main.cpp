@@ -140,12 +140,12 @@ int main(int argc, char** argv)
 		double t = -omp_get_wtime();
 
 		BuildSetForClaster(name_file_vtk, name_file_pairs, name_file_init_boundary, name_file_normals,
-			name_file_inner_boundary, name_file_face_and_id);
+			name_file_inner_boundary, name_file_face_and_id, BASE_ADRESS+"squares.bin", BASE_ADRESS+"volume.bin");
 
 		t += omp_get_wtime();
 		std::cout << "Time for build start set: " << t << "\n";
 
-#ifndef OnlyReadFiles
+#ifdef OnlyReadFiles
 		MPI_RETURN(0);
 #endif
 	}

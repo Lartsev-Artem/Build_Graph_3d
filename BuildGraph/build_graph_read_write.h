@@ -39,10 +39,11 @@ using namespace std::chrono;
 
 int BuildSetForClaster(const std::string name_file_vtk, const std::string name_file_pairs,
 	const std::string name_file_boundary, const std::string name_file_normals, const std::string name_file_boundary_inner,
-	const std::string name_file_face_and_id);
+	const std::string name_file_face_and_id, const std::string name_file_squares, const std::string name_file_volume);
 
-int NormalAndSquareFace(size_t NumberCell, size_t NumberFace, const vtkSmartPointer<vtkUnstructuredGrid>& unstructuredgrid, Eigen::Vector3d& n);
-int WriteNormalFile(const std::string name_file_normals, vtkSmartPointer<vtkUnstructuredGrid>& unstructured_grid);
+int NormalAndSquareFace(size_t NumberCell, size_t NumberFace, const vtkSmartPointer<vtkUnstructuredGrid>& unstructuredgrid, Type& S, Eigen::Vector3d& n);
+int WriteNormalAndSquaresFile(const std::string name_file_normals, const std::string name_file_squares, vtkSmartPointer<vtkUnstructuredGrid>& unstructured_grid);
+int WriteVolume(const std::string name_file_volume, vtkSmartPointer<vtkUnstructuredGrid>& unstructured_grid);
 
 int WritePairsId(const std::string name_file_pairs, vtkSmartPointer<vtkUnstructuredGrid>& unstructured_grid);
 

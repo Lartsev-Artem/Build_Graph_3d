@@ -47,7 +47,7 @@ int ReadInnerBoundaryForWrite(const std::string name_file_boundary_inner, std::s
 		return 0;
 	}
 
-int NormalAndSquareFace(size_t NumberCell, size_t NumberFace, const vtkSmartPointer<vtkUnstructuredGrid>& unstructuredgrid, Eigen::Vector3d& n) {
+int NormalAndSquareFace(size_t NumberCell, size_t NumberFace, const vtkSmartPointer<vtkUnstructuredGrid>& unstructuredgrid, Type& S, Eigen::Vector3d& n) {
 	vtkSmartPointer<vtkIdList> idp = unstructuredgrid->GetCell(NumberCell)->GetFace(NumberFace)->GetPointIds();
 
 	Type P0[3], P1[3], P2[3];
@@ -63,6 +63,8 @@ int NormalAndSquareFace(size_t NumberCell, size_t NumberFace, const vtkSmartPoin
 	n[0] = a[1] * b[2] - a[2] * b[1];
 	n[1] = -a[0] * b[2] + a[2] * b[0];
 	n[2] = a[0] * b[1] - a[1] * b[0];
+
+	S = n.norm() / 2; //sqrt(pow(n[0], 2) + pow(n[1], 2) + pow(n[2], 2)) / 2;
 
 	n.normalize();
 
@@ -100,8 +102,15 @@ int NormalAndSquareFace(size_t NumberCell, size_t NumberFace, const vtkSmartPoin
 	return 0;
 }
 
-int WriteNormalFile(const std::string name_file_normals, vtkSmartPointer<vtkUnstructuredGrid>& unstructured_grid) {
+int WriteNormalAndSquaresFile(const std::string name_file_normals, const std::string name_file_squares, vtkSmartPointer<vtkUnstructuredGrid>& unstructured_grid) {
 	std::ofstream ofile;
+
+	std::unique_ptr<FILE, int(*)(FILE*)> file_square(fopen(name_file_squares.c_str(), "wb"), fclose);
+	if (!file_square) { printf("file_square is not opened for writing\n"); return 1; }
+
+
+	std::unique_ptr<FILE, int(*)(FILE*)> file_norm(fopen(name_file_normals.c_str(), "wb"), fclose);
+	if (!file_norm) { printf("file normals is not opened for writing\n"); return 1; }
 
 	ofile.open(name_file_normals);
 	if (!ofile.is_open()) {
@@ -110,21 +119,74 @@ int WriteNormalFile(const std::string name_file_normals, vtkSmartPointer<vtkUnst
 	}
 
 	int n = unstructured_grid->GetNumberOfCells();
+	n *= 4;
+	fwrite_unlocked(&n, sizeof(int), 1, file_square.get());
+	n /= 4;
+	fwrite_unlocked(&n, sizeof(int), 1, file_norm.get());
+
 	Eigen::Vector3d normal;
+	Type S;
 	ofile << n << '\n';
+
 	for (size_t i = 0; i < n; i++)
 	{
 		for (size_t j = 0; j < 4; j++)
 		{
-			NormalAndSquareFace(i, j, unstructured_grid, normal);
-			ofile << setprecision(16) << normal[0] << ' ' << normal[1] << ' ' << normal[2] << '\n';
+			NormalAndSquareFace(i, j, unstructured_grid, S, normal);
+			fwrite_unlocked(&S, sizeof(Type), 1, file_square.get());
+			fwrite_unlocked(normal.data(), sizeof(Type), 3, file_norm.get());
+
+			ofile << setprecision(16) << normal[0] << ' ' << normal[1] << ' ' << normal[2] << '\n';			
 		}
 
 	}
 	ofile.close();
+
+	fclose(file_square.get());
+	fclose(file_norm.get());
+	
 	return 0;
 }
+int WriteVolume(const std::string name_file_volume, vtkSmartPointer<vtkUnstructuredGrid>& unstructured_grid) {
 
+	auto GetVolumeCell{[](size_t NumberCell, const vtkSmartPointer<vtkUnstructuredGrid>& unstructuredgrid) {
+		Type V = 0;
+		Type P0[3], P1[3], P2[3], P3[3];
+
+		vtkSmartPointer<vtkIdList> idp = unstructuredgrid->GetCell(NumberCell)->GetPointIds();
+		unstructuredgrid->GetPoint(idp->GetId(0), P0);
+		unstructuredgrid->GetPoint(idp->GetId(1), P1);
+		unstructuredgrid->GetPoint(idp->GetId(2), P2);
+		unstructuredgrid->GetPoint(idp->GetId(3), P3);
+
+		Type a[3], b[3], c[3];
+		for (size_t i = 0; i < 3; i++) {
+			a[i] = P1[i] - P0[i];
+			b[i] = P2[i] - P0[i];
+			c[i] = P3[i] - P0[i];
+		}
+
+		V = a[0] * (b[1] * c[2] - c[1] * b[2]) - a[1] * (b[0] * c[2] - c[0] * b[2]) + a[2] * (b[0] * c[1] - b[1] * c[0]);
+		return abs(V) / 6;
+	} };
+
+
+	std::unique_ptr<FILE, int(*)(FILE*)> file_graph(fopen(name_file_volume.c_str(), "wb"), fclose);
+	if (!file_graph) { printf("file_volume is not opened for writing\n"); return 1; }
+
+	const int n = unstructured_grid->GetNumberOfCells();
+	fwrite_unlocked(&n, sizeof(int), 1, file_graph.get());
+	
+	Type V;
+	for (size_t i = 0; i < n; i++) {
+		V = GetVolumeCell(i, unstructured_grid);
+		fwrite_unlocked(&V, sizeof(Type), 1, file_graph.get());
+	}
+
+
+	fclose(file_graph.get());
+	return 0;
+}
 int WritePairsId(const std::string name_file_pairs, vtkSmartPointer<vtkUnstructuredGrid>& unstructured_grid) {
 
 	auto GetNumberNeighborFace{ [](const int a, const int b, const int c, vtkCell* neighbor_cell)
@@ -350,7 +412,7 @@ int WriteInnerCellAndIdFaces(const std::string name_file_boundary_inner, const s
 
 int BuildSetForClaster(const std::string name_file_vtk, const std::string name_file_pairs,
 	const std::string name_file_boundary, const std::string name_file_normals, const std::string name_file_boundary_inner, 
-	const std::string name_file_face_and_id) {
+	const std::string name_file_face_and_id, const std::string name_file_squares, const std::string name_file_volume) {
 
 	std::cout << "Start build \n";
 
@@ -366,7 +428,9 @@ int BuildSetForClaster(const std::string name_file_vtk, const std::string name_f
 
 	if (WriteInitBoundarySetAndInnerBoundaryFace(name_file_boundary, name_file_boundary_inner, unstructured_grid)) return 1;
 
-	if (WriteNormalFile(name_file_normals, unstructured_grid)) return 1;
+	if (WriteNormalAndSquaresFile(name_file_normals, name_file_squares ,unstructured_grid)) return 1;
+
+	if (WriteVolume(name_file_volume, unstructured_grid)) return 1;
 
 	//if (WriteInnerCellOfSphere(name_file_inner_sphere, unstructured_grid, name_file_boundary_inner)) return 1;
 
