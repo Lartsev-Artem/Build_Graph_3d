@@ -64,7 +64,7 @@ int NormalAndSquareFace(size_t NumberCell, size_t NumberFace, const vtkSmartPoin
 	n[1] = -a[0] * b[2] + a[2] * b[0];
 	n[2] = a[0] * b[1] - a[1] * b[0];
 
-	S = n.norm() / 2; //sqrt(pow(n[0], 2) + pow(n[1], 2) + pow(n[2], 2)) / 2;
+	S = sqrt(pow(n[0], 2) + pow(n[1], 2) + pow(n[2], 2)) / 2; //n.norm() / 2; //
 
 	n.normalize();
 
@@ -112,7 +112,7 @@ int WriteNormalAndSquaresFile(const std::string name_file_normals, const std::st
 	std::unique_ptr<FILE, int(*)(FILE*)> file_norm(fopen(name_file_normals.c_str(), "wb"), fclose);
 	if (!file_norm) { printf("file normals is not opened for writing\n"); return 1; }
 
-	ofile.open(name_file_normals);
+	ofile.open(name_file_normals+".txt");
 	if (!ofile.is_open()) {
 		std::cout << "Error write file normals\n";
 		return 1;
@@ -268,6 +268,13 @@ int WritePairsId(const std::string name_file_pairs, vtkSmartPointer<vtkUnstructu
 		ofile << all_pairs_face[i] << '\n';
 	}
 	ofile.close();
+
+	std::unique_ptr<FILE, int(*)(FILE*)> file_id_neighbors(fopen((std::string(BASE_ADRESS) + "id_neighbors.bin").c_str(), "wb"), fclose);
+	if (!file_id_neighbors) printf("id_neighbors not open\n");
+
+	fwrite_unlocked(all_pairs_face.data(), sizeof(int), all_pairs_face.size(), file_id_neighbors.get());
+
+	fclose(file_id_neighbors.get());
 	return 0;
 }
 
@@ -410,9 +417,60 @@ int WriteInnerCellAndIdFaces(const std::string name_file_boundary_inner, const s
 	return 0;
 }
 
+size_t CenterOfTetra(const int number_cell, const vtkSmartPointer<vtkUnstructuredGrid>& unstructuredgrid, Vector3& point_in_tetra) {
+
+	auto MakeS{ [](Type* P0,Type* P1,Type* P2) {
+		Type Sum = 0;
+		Type a[3], b[3];
+		for (size_t i = 0; i < 3; i++) {
+			a[i] = P1[i] - P0[i];
+			b[i] = P2[i] - P0[i];
+		}
+
+		Sum = pow(a[1] * b[2] - a[2] * b[1], 2) + pow(a[0] * b[2] - a[2] * b[0], 2) + pow(a[0] * b[1] - a[1] * b[0], 2);
+		return 0.5 * sqrt(Sum);
+} };
+
+	Type P0[3], P1[3], P2[3], P3[3];
+	vtkSmartPointer<vtkIdList> idp = unstructuredgrid->GetCell(number_cell)->GetPointIds();
+
+	unstructuredgrid->GetPoint(idp->GetId(0), P0);
+	unstructuredgrid->GetPoint(idp->GetId(1), P1);
+	unstructuredgrid->GetPoint(idp->GetId(2), P2);
+	unstructuredgrid->GetPoint(idp->GetId(3), P3);
+
+	Type Squr[4] = { MakeS(P1,P2,P3),MakeS(P0,P2,P3), MakeS(P0,P1,P3),MakeS(P0,P1,P2) };
+
+
+	Type Sum = Squr[0] + Squr[1] + Squr[2] + Squr[3];
+	for (size_t i = 0; i < 3; i++) {
+		point_in_tetra[i] = (Squr[0] * P0[i] + Squr[1] * P1[i] + Squr[2] * P2[i] + Squr[3] * P3[i]) / Sum;
+	}
+	return 0;
+}
+int WriteCentersOfTetra(const std::string name_file_centers, const vtkSmartPointer<vtkUnstructuredGrid>& unstructured_grid) {
+	
+	std::unique_ptr<FILE, int(*)(FILE*)> file_centers(fopen(name_file_centers.c_str(), "wb"), fclose);
+	if (!file_centers) { printf("file_centers is not opened for writing\n"); return 1; }
+
+	const int n = unstructured_grid->GetNumberOfCells();
+	fwrite_unlocked(&n, sizeof(int), 1, file_centers.get());
+
+	Vector3 point;
+	for (size_t i = 0; i < n; i++) {
+		CenterOfTetra(i, unstructured_grid, point);
+		fwrite_unlocked(point.data(), sizeof(Type), 3, file_centers.get());
+	}
+
+
+	fclose(file_centers.get());
+	return 0;
+}
+
 int BuildSetForClaster(const std::string name_file_vtk, const std::string name_file_pairs,
 	const std::string name_file_boundary, const std::string name_file_normals, const std::string name_file_boundary_inner, 
-	const std::string name_file_face_and_id, const std::string name_file_squares, const std::string name_file_volume) {
+	const std::string name_file_face_and_id, const std::string name_file_squares, const std::string name_file_volume, 
+	const std::string name_file_centers) {
 
 	std::cout << "Start build \n";
 
@@ -431,6 +489,8 @@ int BuildSetForClaster(const std::string name_file_vtk, const std::string name_f
 	if (WriteNormalAndSquaresFile(name_file_normals, name_file_squares ,unstructured_grid)) return 1;
 
 	if (WriteVolume(name_file_volume, unstructured_grid)) return 1;
+
+	if (WriteCentersOfTetra(name_file_centers, unstructured_grid)) return 1;
 
 	//if (WriteInnerCellOfSphere(name_file_inner_sphere, unstructured_grid, name_file_boundary_inner)) return 1;
 
@@ -537,7 +597,7 @@ int ReadInnerCellBoundary(const std::string name_file_boundary_inner, std::set<I
 int ReadNormalFile(const std::string name_file_normals, std::vector<Normals>& normals) {
 	std::ifstream ifile;
 
-	ifile.open(name_file_normals);
+	ifile.open(name_file_normals+".txt");
 	if (!ifile.is_open()) {
 		std::cout << "Error read file normals\n";
 		return 1;
