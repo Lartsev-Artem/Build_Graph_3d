@@ -100,7 +100,6 @@ int main(int argc, char** argv)
 	id_try_size = 0;
 	dist_try_size = 0;
 	x_try_size = 0;
-	omp_set_num_threads(4);
 
 #ifdef  USE_MPI
 
@@ -238,6 +237,7 @@ int main(int argc, char** argv)
 		
 
 		const int count_cirection = directions.size();
+		std::vector<int> ArrayData(num_cells, 0);
 
 #ifdef ONLY_ONE_DIRECTION
 		for (int cur_direction = 0; cur_direction < 1; cur_direction++)
@@ -250,9 +250,12 @@ int main(int argc, char** argv)
 #endif //ONLY_ONE_DIRECTION
 
 		{
+			
+
 			flag = true;
 			InitFacesState(all_pairs_id, faces_state, inner_faces);
 			direction = directions[cur_direction];  // 13 -- error direction for test.vtk grid
+			//direction = Vector3(1, 0, 0);
 
 			//direction = directions[3];// Vector3(1, 0, 0);
 
@@ -324,6 +327,14 @@ int main(int argc, char** argv)
 				}
 #else
 			
+				static int ccoun = 1;
+				{
+					for (auto el : cur_el)
+						ArrayData[el] = ccoun;
+				}
+				ccoun++;
+
+
 				NewStep(all_pairs_id, count_in_face, count_knew_face, cur_el, next_step_el);
 				for (auto el : cur_el) {
 					graph[count_graph] = el;
@@ -403,6 +414,14 @@ int main(int argc, char** argv)
 
 		}
 
+		std::ofstream steps(BASE_ADRESS + "steps.txt");
+		for (size_t i = 0; i < ArrayData.size(); i++)
+		{
+			steps << ArrayData[i] << '\n';
+		}
+
+		steps.close();
+
 		ofile.close();
 		fclose(file_graph.get());
 		fclose(file_id.get());
@@ -435,7 +454,10 @@ int main(int argc, char** argv)
 #ifdef USE_MPI
 	if (myid == 0)
 #endif
-		WriteFileBoundary("D:\\Desktop\\FilesCourse\\MySphereGraph.vtk", name_file_graph + "0.txt", name_file_vtk);
+	{
+		WriteFileBoundary("D:\\Desktop\\FilesCourse\\Steps.vtk", BASE_ADRESS + "steps.txt", name_file_vtk);
+		//WriteFileBoundary("D:\\Desktop\\FilesCourse\\MySphereGraph.vtk", name_file_graph + "0.txt", name_file_vtk);
+	}
 #endif
 	MPI_RETURN(0);
 }
